@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "syncedaddressbook"
+version = "0.1.0"
+description = ""
+authors = ["Nikita Sherstianykh <n.sherstianykh@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = {extras = ["all"], version = "^0.101.1"}
+alembic = "^1.11.3"
+sqlalchemy = "^2.0.20"
+psycopg2 = "^2.9.7"
+pydantic = {extras = ["email"], version = "^2.3.0"}
+faker = "^19.3.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
