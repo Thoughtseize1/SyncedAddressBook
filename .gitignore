@@ -2,3 +2,12 @@
 .idea/
 config.py
 src/conf/config.ini
+__pycache__/main.cpython-310.pyc
+migrations/__pycache__/env.cpython-310.pyc
+src/__pycache__/schemas.cpython-310.pyc
+src/database/__pycache__/db.cpython-310.pyc
+src/database/__pycache__/models.cpython-310.pyc
+src/routes/__pycache__/contacts.cpython-310.pyc
+migrations/versions/__pycache__/7ce448ffd419_second_init.cpython-310.pyc
+migrations/versions/__pycache__/566807a95767_first_init.cpython-310.pyc
+migrations/script.py.mako
