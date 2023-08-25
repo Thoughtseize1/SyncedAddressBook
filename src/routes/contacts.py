@@ -2,7 +2,7 @@ from datetime import date, timedelta, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Query, Depends, Path, status, HTTPException
-from sqlalchemy import func, or_, text
+from sqlalchemy import func, or_, text, select, extract, and_, asc
 from sqlalchemy.orm import Session
 
 from src.database.db import get_db
@@ -86,20 +86,22 @@ async def delete_contact(contact_id: int = Path(ge=1), db: Session = Depends(get
 @router.get("/birthdays/", response_model=List[ContactBirthdaysResponse])
 def get_upcoming_birthdays(db: Session = Depends(get_db)):
     today = date.today()
-    seven_days_later = today + timedelta(days=7)
+    end_date = today + timedelta(days=7)
 
-    upcoming_birthdays = (
-        db.query(Contact)
-        .filter(
+    stmt = (
+        select(Contact)
+        .where(
             or_(
-                (func.date_part('month', Contact.birthdate) == today.month) & (
-                            func.date_part('day', Contact.birthdate) >= today.day),
-                (func.date_part('month', Contact.birthdate) == seven_days_later.month) & (
-                            func.date_part('day', Contact.birthdate) <= seven_days_later.day)
+                and_(
+                    extract('month', Contact.birthdate) == today.month,
+                    extract('day', Contact.birthdate) >= today.day
+                ),
+                and_(
+                    extract('month', Contact.birthdate) == end_date.month,
+                    extract('day', Contact.birthdate) <= end_date.day
+                )
             )
-        )
-        .all()
-    )
+        )).order_by(asc(Contact.id))
 
-    db.close()
-    return upcoming_birthdays
+    result = db.execute(stmt)
+    return result.scalars().all()
