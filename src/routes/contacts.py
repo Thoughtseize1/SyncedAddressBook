@@ -2,7 +2,7 @@ from datetime import date, timedelta, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Query, Depends, Path, status, HTTPException
-from sqlalchemy import extract, func
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from src.database.db import get_db
@@ -68,7 +68,7 @@ async def search_contacts(
         query = db.query(Contact).filter(Contact.email.ilike(f"%{email}%"))
 
     contacts = query.all()
-    if not contacts:  # Якщо список порожній
+    if not contacts:
         raise HTTPException(status_code=status.HTTP_204_NO_CONTENT, headers={'details': 'NOT FOUND'})
     return contacts
 
@@ -81,3 +81,25 @@ async def delete_contact(contact_id: int = Path(ge=1), db: Session = Depends(get
     db.delete(contact)
     db.commit()
     print(f'Contact {contact.first_name} deleted')
+
+
+@router.get("/birthdays/", response_model=List[ContactBirthdaysResponse])
+def get_upcoming_birthdays(db: Session = Depends(get_db)):
+    today = date.today()
+    seven_days_later = today + timedelta(days=7)
+
+    upcoming_birthdays = (
+        db.query(Contact)
+        .filter(
+            or_(
+                (func.date_part('month', Contact.birthdate) == today.month) & (
+                            func.date_part('day', Contact.birthdate) >= today.day),
+                (func.date_part('month', Contact.birthdate) == seven_days_later.month) & (
+                            func.date_part('day', Contact.birthdate) <= seven_days_later.day)
+            )
+        )
+        .all()
+    )
+
+    db.close()
+    return upcoming_birthdays
