@@ -1,17 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, func
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Date, DateTime, func, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
 
-"""
-Контакти повинні зберігатися в базі даних та містити в собі наступну інформацію:
-
-Ім'я
-Прізвище
-Електронна адреса
-Номер телефону
-День народження
-Додаткові дані (необов'язково)
-
-"""
 Base = declarative_base()
 
 
@@ -26,3 +15,21 @@ class Contact(Base):
     additional_data = Column(String, nullable=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    user_id = Column('user_id', ForeignKey('users.id', ondelete='CASCADE'), default=None)
+    user = relationship('User', backref="users")  # створює зв'язок між класами і вказує, що зв'язок є зв'язком m2m
+    # backref створює зворотне посилання на клас User,
+    # дозволяючи отримати доступ до зв'язаних об'єктів Contact з об'єкта User
+
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    username = Column(String(50))
+    email = Column(String(30), nullable=False, unique=True)
+    password = Column(String(255), nullable=False)  # not 10, because store hash, not password
+    created_at = Column('crated_at', DateTime, default=func.now())
+    avatar = Column(String(255), nullable=True)
+    refresh_token = Column(String(255), nullable=True)
+
+
+
