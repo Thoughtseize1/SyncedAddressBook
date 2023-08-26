@@ -13,7 +13,7 @@ def create_fake_contact():
         email=fake.email(),
         phone_number=fake.phone_number(),
         birthdate=fake.date_of_birth(),
-
+        description = fake.sentence()
     )
 
 
@@ -25,7 +25,7 @@ def seed_contacts(num_contacts: int, db: Session):
 
 def main():
     db = next(get_db())
-    num_contacts = 100
+    num_contacts = 10
     seed_contacts(num_contacts, db)
     db.close()
 
