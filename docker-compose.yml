@@ -1,0 +1,51 @@
+# визначає конфігурацію Docker Compose, яка складається з двох сервісів: redis та postgres
+# https://docs.docker.com/compose/compose-file/compose-file-v3/
+version: "3"
+services:
+  redis:
+    # Служба redis використовує образ Docker redis:alpine,
+    # зіставляє внутрішній порт 6379 з портом хосту 6379
+    # і не має певні змінні середовища або томи:
+    image: redis:alpine
+    ports:
+      # HOST:CONTAINER  # https://docs.docker.com/compose/compose-file/compose-file-v3/#ports
+      - "6379:6379"
+  postgres:
+    # Служба postgres використовує образ Docker postgres:12,
+    # зіставляє внутрішній порт 5432 з портом хосту 5432 та має
+    # змінні середовища, визначені для імені бази даних rest_app,
+    # імені користувача postgres та паролю 567234. Крім того,
+    # для даних postgres визначений том, що відображає локальний
+    # каталог ./postgres-data на каталог контейнера /var/lib/postgresql/data
+    image: postgres:12
+    environment:
+      # Під час запуску Docker побачить плейсхолдер і автоматично підставить значення з файлу .env
+      # rest_app
+      POSTGRES_DB: ${POSTGRES_DB}
+      # postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      # 54326379
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+# можемо запустити служби Redis та PostgreSQL за допомогою команди:
+# docker-compose up -d
+# , зробивши їхні дані доступними в зазначених портах на локальній машині
+
+# https://docs.docker.com/engine/reference/commandline/compose/
+# найпоширеніші команди для роботи з файлом docker-compose.yml:
+# docker-compose up – запуск служб, визначених у файлі docker-compose.yml;
+# ця команда створить і запустить контейнери для кожного сервісу, а також створить мережу для взаємодії контейнерів.
+
+# docker-compose down – зупинити і видалити контейнери, мережі і томи, створені командою docker-compose up.
+# docker-compose ps – виведе список контейнерів, створених docker-compose up, а також їхній статус та іншу інформацію.
+# docker-compose logs – перегляд логів контейнерів, створених docker-compose up.
+# docker-compose exec <ім’я служби> <команда> – виконати команду в запущеному контейнері, створеному docker-compose up;
+#  наприклад, docker-compose exec redis redis-cli запустить команду redis-cli в контейнері redis.
+
+# docker-compose build – перебудувати образи, визначені у файлі docker-compose.yml.
+# Це може бути корисно, якщо внесли зміни до сервісів і необхідно переконатися, що образи актуальні.
+
+# Тепер перед початком роботи однією командою docker-compose up запускаємо одразу всі сервіси, що використовуються в проєкті
