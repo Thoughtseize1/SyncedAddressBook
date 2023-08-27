@@ -4,6 +4,8 @@
 """
 from typing import Optional
 
+import redis as redis
+import pickle
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -11,20 +13,24 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
+from src.conf.config import settings
 from src.database.db import get_db
 from src.repository import users as repository_users
 
 
 class Auth:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    SECRET_KEY = "secret_key"
-    ALGORITHM = "HS256"
+    SECRET_KEY = settings.secret_key
+    ALGORITHM = settings.algorithm
+    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+    r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=0)
     """забезпечує авторизацію по bearer токену. Він потрібний для валідації JWT токена, 
     який буде використовуватися як аутентифікаційні дані користувача.
     вказуємо йому, де в нашому застосунку буде маршрут для аутентифікації tokenUrl="/api/auth/login". І
     він, відповідно до стандарту, очікує на пару username і password, але, 
     замість значення username, будемо підставляти в полі email користувача."""
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")  #
+    r = redis.Redis(host=settings.domain, port=settings.redis_port, db=0)
 
     def verify_password(self, plain_password, hashed_password) -> bool:
         """перевіряє, чи відповідає простий текстовий пароль хешованому паролю."""
@@ -99,7 +105,6 @@ class Auth:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
         try:
             # Decode JWT
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
@@ -110,16 +115,39 @@ class Auth:
 
             else:
                 raise credentials_exception
-
         except JWTError as e:
             print(e)
             raise credentials_exception
 
-        user = await repository_users.get_user_by_email(email, db)
+        user = self.r.get(f"user:{email}")
         if user is None:
-            raise credentials_exception
-
+            user = await repository_users.get_user_by_email(email, db)
+            print('OH NO! FROM DATABASE!!!!!!!!!! =(((((((((')
+            if user is None:
+                raise credentials_exception
+            self.r.set(f"user:{email}", pickle.dumps(user))
+            self.r.expire(f"user:{email}", 900)
+        else:
+            user = pickle.loads(user)
+            print("From REDIS")
         return user
 
+    async def get_email_from_token(self, token: str):
+        try:
+            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            email = payload["sub"]
+            return email
+        except JWTError as e:
+            print(e)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="Invalid token for email verification")
 
-auth_service = Auth()  # будемо використовувати у всьому коді для виконання операцій аутентифікації та авторизації
+    def create_email_token(self, data: dict):
+        to_encode = data.copy()
+        expire = datetime.utcnow() + timedelta(minutes=60)
+        to_encode.update({"iat": datetime.utcnow(), "exp": expire})
+        token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+        return token
+
+
+auth_service = Auth()  # Будемо використовувати у всьому коді для виконання операцій аутентифікації та авторизації
