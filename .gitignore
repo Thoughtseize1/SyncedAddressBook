@@ -19,3 +19,4 @@ src/routes/__pycache__/auth.cpython-310.pyc
 src/services/__pycache__/auth.cpython-310.pyc
 .env
 .env
+*.pyc
